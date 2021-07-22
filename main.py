@@ -60,7 +60,7 @@ def synthesize_all(m = 250, n_x = 5):
     :return:
     """
     x = synthesize_data_X(n_x, m)
-    y = synthesizeDataY(m)
+    y = synthesize_data_Y(m)
     w, b = synthesizeDataParams(n_x) # TODO: Readjust dimensions of W here and below :-)
     return x, y, w, b
 
@@ -77,16 +77,20 @@ def synthesize_data_X(n_x, m, mu_x = sp.random.random(1) * 25, sigma_x = sp.rand
     # Create a (1*m) array that represents m examples of a feature x_i.
     x_i = sp.random.normal(mu_x, sigma_x, m).reshape(1, m)
     # Compile all n_x x_i's into a matrix X, dim (n_x * m).
-    X = np.matrix(np.array([x_i for i in range(n_x)])).reshape(n_x, m)
+    X = np.matrix(np.array([sp.random.normal(mu_x, sigma_x, m).reshape(1, m)
+                            for i in range(n_x)])).reshape(n_x, m)
     return X, n_x, m, mu_x, sigma_x
 
 # TODO: Make this function able to generate noise around any provided math f'xn we want to model
 # i.e. make f a parameter, where f = x**2 + 2*x - 14 + 1 / (1 + exp(-x)), or f = x**3, or whatever :)
 # Resource: https://stackoverflow.com/questions/46321333/lambdify-expressions-with-native-sympy-functions
-def synthesize_data_Y(X, f = sympy.lambdify(x, log(x), 'numpy')):
+def synthesize_data_Y(m, f = sympy.lambdify(x, log(x), 'numpy')):
     mu_y = sp.random.random(1) * 25
     sigma_y = sp.random.random(1) * 25
-    y = f(X[0:,0]) # TODO: Figure out why this isn't working, it has fried my internals...
+    x_i = np.absolute(sp.random.normal(mu_y, sigma_y, m).reshape(1, m))
+    y = f(x_i)
+    if np.any(x_i <= 0):
+        print('there\'s an element in x_i that\'s non-positive')
     return y
 
 
@@ -132,8 +136,28 @@ for i in range(k):
 
 plt.show()
 '''
-x = synthesize_data_X(1, 500)
-print(x[:100])
-y = synthesize_data_Y(x)
-plt.scatter(np.array(x[0]), y)
+m = 100
+n_x = 6
+x = synthesize_data_X(n_x, m)
+y = synthesize_data_Y(m)
+
+if n_x % 2 == 0:
+    n_rows = n_x // 2
+    n_cols = n_x // (n_x // 2)
+else:
+    n_rows = n_x // 2
+    n_cols = n_x // (n_x // 2) + 1
+
+fig, ax = plt.subplots(2, 3, sharex='col', sharey='row')
+
+c1, c2 = (0, 0)
+for i in range(2):
+    for j in range(3):
+        ax[i][j].scatter(np.array(x[0][i + j]), y)
+        ax[i][j].text(0.5, 0.5, c1 + c2,
+                      fontsize=18, ha='center')
+        c2 += 1
+    c1 += 1
+
+# plt.scatter(np.array(x[0][0]), y)
 plt.show()
